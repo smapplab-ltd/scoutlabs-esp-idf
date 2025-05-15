@@ -110,7 +110,9 @@ typedef intr_handle_t uart_isr_handle_t;
  *     - ESP_OK   Success
  *     - ESP_FAIL Parameter error
  */
+
 esp_err_t uart_driver_install(uart_port_t uart_num, int rx_buffer_size, int tx_buffer_size, int queue_size, QueueHandle_t* uart_queue, int intr_alloc_flags);
+esp_err_t uart_driver_install_custom(uart_port_t uart_num, int rx_buffer_size, int tx_buffer_size, int queue_size, QueueHandle_t* uart_queue, int intr_alloc_flags, void* rx_data_buf, void* tx_data_buf);
 
 /**
  * @brief Uninstall UART driver.

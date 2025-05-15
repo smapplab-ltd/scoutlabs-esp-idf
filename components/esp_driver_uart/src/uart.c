@@ -152,6 +152,11 @@ typedef struct {
 #if PROTECT_APB
     esp_pm_lock_handle_t pm_lock;   ///< Power management lock
 #endif
+
+    uint8_t static_rx_ringbuf[sizeof(StaticRingbuffer_t)];
+    bool    is_rx_ringbuf_static;
+    uint8_t static_tx_ringbuf[sizeof(StaticRingbuffer_t)];
+
 } uart_obj_t;
 
 typedef struct {
@@ -979,6 +984,10 @@ static void UART_ISR_ATTR uart_rx_intr_handler_default(void *param)
                                                                       MIN(p_uart->tx_len_cur, tx_fifo_rem));
                         p_uart->tx_ptr += send_len;
                         p_uart->tx_len_tot -= send_len;
+                        p_uart->tx_len_tot -= send_len;
+                        p_uart->tx_len_tot -= send_len;
+                        p_uart->tx_len_tot -= send_len;
+                        p_uart->tx_len_tot -= send_len;
                         p_uart->tx_len_cur -= send_len;
                         tx_fifo_rem -= send_len;
                         if (p_uart->tx_len_cur == 0) {
@@ -1547,7 +1556,7 @@ static void uart_free_driver_obj(uart_obj_t *uart_obj)
     if (uart_obj->event_queue) {
         vQueueDeleteWithCaps(uart_obj->event_queue);
     }
-    if (uart_obj->rx_ring_buf) {
+    if (uart_obj->rx_ring_buf && !(uart_obj->is_rx_ringbuf_static) ) {
         vRingbufferDeleteWithCaps(uart_obj->rx_ring_buf);
     }
     if (uart_obj->tx_ring_buf) {
@@ -1563,7 +1572,7 @@ static void uart_free_driver_obj(uart_obj_t *uart_obj)
     heap_caps_free(uart_obj);
 }
 
-static uart_obj_t *uart_alloc_driver_obj(uart_port_t uart_num, int event_queue_size, int tx_buffer_size, int rx_buffer_size)
+static uart_obj_t *uart_alloc_driver_obj(uart_port_t uart_num, int event_queue_size, int tx_buffer_size, int rx_buffer_size, void* rx_data_buf, void* tx_data_buf)
 {
     uart_obj_t *uart_obj = heap_caps_calloc(1, sizeof(uart_obj_t), UART_MALLOC_CAPS);
     if (!uart_obj) {
@@ -1573,19 +1582,32 @@ static uart_obj_t *uart_alloc_driver_obj(uart_port_t uart_num, int event_queue_s
     if (!uart_obj->rx_data_buf) {
         goto err;
     }
+
     if (event_queue_size > 0) {
         uart_obj->event_queue = xQueueCreateWithCaps(event_queue_size, sizeof(uart_event_t), UART_MALLOC_CAPS);
         if (!uart_obj->event_queue) {
             goto err;
         }
     }
+
     if (tx_buffer_size > 0) {
         uart_obj->tx_ring_buf = xRingbufferCreateWithCaps(tx_buffer_size, RINGBUF_TYPE_NOSPLIT, UART_MALLOC_CAPS);
         if (!uart_obj->tx_ring_buf) {
             goto err;
         }
     }
-    uart_obj->rx_ring_buf = xRingbufferCreateWithCaps(rx_buffer_size, RINGBUF_TYPE_BYTEBUF, UART_MALLOC_CAPS);
+
+    if( rx_data_buf != NULL ) {
+        printf("---> Using static RX buffer!\n");
+        uart_obj->rx_ring_buf = xRingbufferCreateStatic( rx_buffer_size, RINGBUF_TYPE_BYTEBUF, rx_data_buf, (StaticRingbuffer_t*)(uart_obj->static_rx_ringbuf) );
+        uart_obj->is_rx_ringbuf_static = true;
+    }
+    else {
+        uart_obj->rx_ring_buf = xRingbufferCreateWithCaps(rx_buffer_size, RINGBUF_TYPE_BYTEBUF, UART_MALLOC_CAPS);
+        uart_obj->is_rx_ringbuf_static = false;
+    }
+
+
     uart_obj->tx_mux = xSemaphoreCreateMutexWithCaps(UART_MALLOC_CAPS);
     uart_obj->rx_mux = xSemaphoreCreateMutexWithCaps(UART_MALLOC_CAPS);
     uart_obj->tx_brk_sem = xSemaphoreCreateBinaryWithCaps(UART_MALLOC_CAPS);
@@ -1609,7 +1631,11 @@ err:
     return NULL;
 }
 
-esp_err_t uart_driver_install(uart_port_t uart_num, int rx_buffer_size, int tx_buffer_size, int event_queue_size, QueueHandle_t *uart_queue, int intr_alloc_flags)
+esp_err_t uart_driver_install(uart_port_t uart_num, int rx_buffer_size, int tx_buffer_size, int event_queue_size, QueueHandle_t *uart_queue, int intr_alloc_flags) {
+    return uart_driver_install_custom(uart_num, rx_buffer_size, tx_buffer_size, event_queue_size, uart_queue, intr_alloc_flags, NULL, NULL);
+}
+
+esp_err_t uart_driver_install_custom(uart_port_t uart_num, int rx_buffer_size, int tx_buffer_size, int event_queue_size, QueueHandle_t *uart_queue, int intr_alloc_flags, void* rx_data_buf, void* tx_data_buf)
 {
     esp_err_t ret;
 #ifdef CONFIG_ESP_SYSTEM_GDBSTUB_RUNTIME
@@ -1631,7 +1657,7 @@ esp_err_t uart_driver_install(uart_port_t uart_num, int rx_buffer_size, int tx_b
 #endif
 
     if (p_uart_obj[uart_num] == NULL) {
-        p_uart_obj[uart_num] = uart_alloc_driver_obj(uart_num, event_queue_size, tx_buffer_size, rx_buffer_size);
+        p_uart_obj[uart_num] = uart_alloc_driver_obj(uart_num, event_queue_size, tx_buffer_size, rx_buffer_size, rx_data_buf, tx_data_buf);
         if (p_uart_obj[uart_num] == NULL) {
             ESP_LOGE(UART_TAG, "UART driver malloc error");
             return ESP_FAIL;
