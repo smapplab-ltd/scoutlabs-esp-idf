@@ -31,6 +31,10 @@
 #define TWDT_TIMER_GROUP        0
 #define TWDT_INTR_SOURCE        ETS_TG0_WDT_LEVEL_INTR_SOURCE
 
+#define WDT_RESET_ENABLE 1
+#define WDT_ACTION ( WDT_RESET_ENABLE ? WDT_STAGE_ACTION_RESET_SYSTEM : WDT_STAGE_ACTION_INT )
+
+
 /**
  * Context for the software implementation of the Task WatchDog Timer.
  * This will be passed as a parameter to public functions below. */
@@ -114,9 +118,11 @@ esp_err_t esp_task_wdt_impl_timer_allocate(const esp_task_wdt_config_t *config,
 
         wdt_hal_write_protect_disable(&ctx->hal);
         // Configure 1st stage timeout and behavior
-        wdt_hal_config_stage(&ctx->hal, WDT_STAGE0, config->timeout_ms * (1000 / TWDT_TICKS_PER_US), WDT_STAGE_ACTION_INT);
+        wdt_hal_config_stage(&ctx->hal, WDT_STAGE0, config->timeout_ms * (1000 / TWDT_TICKS_PER_US), WDT_ACTION);
         // Configure 2nd stage timeout and behavior
-        wdt_hal_config_stage(&ctx->hal, WDT_STAGE1, config->timeout_ms * (2 * 1000 / TWDT_TICKS_PER_US), WDT_STAGE_ACTION_INT);
+        wdt_hal_config_stage(&ctx->hal, WDT_STAGE1, config->timeout_ms * (2 * 1000 / TWDT_TICKS_PER_US), WDT_ACTION);
+
+
         // No need to enable to enable the WDT here, it will be enabled with `esp_task_wdt_impl_timer_restart`
         wdt_hal_write_protect_enable(&ctx->hal);
 
@@ -143,8 +149,8 @@ esp_err_t esp_task_wdt_impl_timer_reconfigure(twdt_ctx_t obj, const esp_task_wdt
     if (ret == ESP_OK) {
         wdt_hal_write_protect_disable(&ctx->hal);
         /* Reconfigure the 1st and 2nd stage timeout */
-        wdt_hal_config_stage(&ctx->hal, WDT_STAGE0, config->timeout_ms * (1000 / TWDT_TICKS_PER_US), WDT_STAGE_ACTION_INT);
-        wdt_hal_config_stage(&ctx->hal, WDT_STAGE1, config->timeout_ms * (2 * 1000 / TWDT_TICKS_PER_US), WDT_STAGE_ACTION_INT);
+        wdt_hal_config_stage(&ctx->hal, WDT_STAGE0, config->timeout_ms * (1000 / TWDT_TICKS_PER_US), WDT_ACTION);
+        wdt_hal_config_stage(&ctx->hal, WDT_STAGE1, config->timeout_ms * (2 * 1000 / TWDT_TICKS_PER_US), WDT_ACTION);
         wdt_hal_write_protect_enable(&ctx->hal);
     }
 

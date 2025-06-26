@@ -102,6 +102,9 @@ extern uint32_t _lx_intr_livelock_counter, _lx_intr_livelock_max;
 volatile bool int_wdt_cpu1_ticked = false;
 #endif
 
+#define WDT_RESET_ENABLE 0
+#define WDT_ACTION ( WDT_RESET_ENABLE ? WDT_STAGE_ACTION_RESET_SYSTEM : WDT_STAGE_ACTION_INT )
+
 static void IRAM_ATTR tick_hook(void)
 {
 #if CONFIG_ESP_INT_WDT_CHECK_CPU1
@@ -116,11 +119,11 @@ static void IRAM_ATTR tick_hook(void)
 #if CONFIG_ESP32_ECO3_CACHE_LOCK_FIX
             _lx_intr_livelock_counter = 0;
             wdt_hal_config_stage(&iwdt_context, WDT_STAGE0,
-                                 CONFIG_ESP_INT_WDT_TIMEOUT_MS * 1000 / IWDT_TICKS_PER_US / (_lx_intr_livelock_max + 1), WDT_STAGE_ACTION_INT);                    // Set timeout before interrupt
+                                 CONFIG_ESP_INT_WDT_TIMEOUT_MS * 1000 / IWDT_TICKS_PER_US / (_lx_intr_livelock_max + 1), WDT_ACTION );                    // Set timeout before interrupt
 #else
-            wdt_hal_config_stage(&iwdt_context, WDT_STAGE0, CONFIG_ESP_INT_WDT_TIMEOUT_MS * 1000 / IWDT_TICKS_PER_US, WDT_STAGE_ACTION_INT);          // Set timeout before interrupt
+            wdt_hal_config_stage(&iwdt_context, WDT_STAGE0, CONFIG_ESP_INT_WDT_TIMEOUT_MS * 1000 / IWDT_TICKS_PER_US, WDT_ACTION);          // Set timeout before interrupt
 #endif
-            wdt_hal_config_stage(&iwdt_context, WDT_STAGE1, 2 * CONFIG_ESP_INT_WDT_TIMEOUT_MS * 1000 / IWDT_TICKS_PER_US, WDT_STAGE_ACTION_INT); // Set timeout before reset
+            wdt_hal_config_stage(&iwdt_context, WDT_STAGE1, 2 * CONFIG_ESP_INT_WDT_TIMEOUT_MS * 1000 / IWDT_TICKS_PER_US, WDT_ACTION); // Set timeout before reset
             wdt_hal_feed(&iwdt_context);
             wdt_hal_write_protect_enable(&iwdt_context);
             int_wdt_cpu1_ticked = false;
@@ -133,8 +136,8 @@ static void IRAM_ATTR tick_hook(void)
         // Todo: Check if there's a way to avoid reconfiguring the stages on each feed.
         wdt_hal_write_protect_disable(&iwdt_context);
         // Reconfigure stage timeouts
-        wdt_hal_config_stage(&iwdt_context, WDT_STAGE0, CONFIG_ESP_INT_WDT_TIMEOUT_MS * 1000 / IWDT_TICKS_PER_US, WDT_STAGE_ACTION_INT);          // Set timeout before interrupt
-        wdt_hal_config_stage(&iwdt_context, WDT_STAGE1, 2 * CONFIG_ESP_INT_WDT_TIMEOUT_MS * 1000 / IWDT_TICKS_PER_US, WDT_STAGE_ACTION_INT); // Set timeout before reset
+        wdt_hal_config_stage(&iwdt_context, WDT_STAGE0, CONFIG_ESP_INT_WDT_TIMEOUT_MS * 1000 / IWDT_TICKS_PER_US, WDT_ACTION);          // Set timeout before interrupt
+        wdt_hal_config_stage(&iwdt_context, WDT_STAGE1, 2 * CONFIG_ESP_INT_WDT_TIMEOUT_MS * 1000 / IWDT_TICKS_PER_US, WDT_ACTION); // Set timeout before reset
         wdt_hal_feed(&iwdt_context);
         wdt_hal_write_protect_enable(&iwdt_context);
     }
@@ -156,8 +159,8 @@ void esp_int_wdt_init(void)
      */
     wdt_hal_init(&iwdt_context, IWDT_INSTANCE, IWDT_PRESCALER, true);
     wdt_hal_write_protect_disable(&iwdt_context);
-    wdt_hal_config_stage(&iwdt_context, WDT_STAGE0, IWDT_INITIAL_TIMEOUT_S * 1000000 / IWDT_TICKS_PER_US, WDT_STAGE_ACTION_INT);
-    wdt_hal_config_stage(&iwdt_context, WDT_STAGE1, IWDT_INITIAL_TIMEOUT_S * 1000000 / IWDT_TICKS_PER_US, WDT_STAGE_ACTION_INT);
+    wdt_hal_config_stage(&iwdt_context, WDT_STAGE0, IWDT_INITIAL_TIMEOUT_S * 1000000 / IWDT_TICKS_PER_US, WDT_ACTION);
+    wdt_hal_config_stage(&iwdt_context, WDT_STAGE1, IWDT_INITIAL_TIMEOUT_S * 1000000 / IWDT_TICKS_PER_US, WDT_ACTION);
     wdt_hal_enable(&iwdt_context);
     wdt_hal_write_protect_enable(&iwdt_context);
 
@@ -216,10 +219,13 @@ void esp_int_wdt_cpu_init(void)
                 NULL
             );
             assert(r == ESP_OK);
+    ESP_LOGI("INTWDT", ">> INT WDT interrupt handler installed on CPU\n", esp_cpu_get_core_id() );
+    tgxwdt_isr(NULL); // Call the ISR once to clear any pending interrupts
 
 #if SOC_CPU_HAS_FLEXIBLE_INTC
     esp_cpu_intr_set_type(ETS_INT_WDT_INUM, INTR_TYPE_LEVEL);
-    esp_cpu_intr_set_priority(ETS_INT_WDT_INUM, SOC_INTERRUPT_LEVEL_MEDIUM);
+    //esp_cpu_intr_set_priority(ETS_INT_WDT_INUM, SOC_INTERRUPT_LEVEL_MEDIUM);
+    esp_cpu_intr_set_priority(ETS_INT_WDT_INUM, 7);
 #endif
 #if CONFIG_ESP32_ECO3_CACHE_LOCK_FIX
     /*
