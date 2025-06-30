@@ -210,7 +210,7 @@ void esp_int_wdt_cpu_init(void)
     esp_intr_disable_source(ETS_INT_WDT_INUM);
     esp_rom_route_intr_matrix(esp_cpu_get_core_id(), WDT_LEVEL_INTR_SOURCE, ETS_INT_WDT_INUM);
 
-
+/*
     esp_err_t r = esp_intr_alloc(
                 ETS_INT_WDT_INUM,
                 ESP_INTR_FLAG_IRAM | ESP_INTR_FLAG_LEVEL3,
@@ -220,6 +220,7 @@ void esp_int_wdt_cpu_init(void)
             );
             assert(r == ESP_OK);
     ESP_LOGI("INTWDT", ">> INT WDT interrupt handler installed on CPU\n", esp_cpu_get_core_id() );
+    */
     tgxwdt_isr(NULL); // Call the ISR once to clear any pending interrupts
 
 #if SOC_CPU_HAS_FLEXIBLE_INTC
