@@ -1563,7 +1563,7 @@ static uint8_t clear_bus_cnt[I2C_NUM_MAX] = { 0 };
 
 esp_err_t i2c_master_cmd_begin(i2c_port_t i2c_num, i2c_cmd_handle_t cmd_handle, TickType_t ticks_to_wait)
 {
-    ESP_LOGW( "i2c_debug", "%s: NUM %d, MODE %d", __func__, i2c_num, p_i2c_obj[i2c_num].mode) ;
+    //ESP_LOGW( "i2c_debug", "%s: NUM %d, MODE %d", __func__, i2c_num, p_i2c_obj[i2c_num].mode) ;
 
     ESP_RETURN_ON_FALSE((i2c_num < I2C_NUM_MAX), ESP_ERR_INVALID_ARG, I2C_TAG, I2C_NUM_ERROR_STR);
     //ESP_RETURN_ON_FALSE(p_i2c_obj[i2c_num] != NULL, ESP_ERR_INVALID_STATE, I2C_TAG, I2C_DRIVER_NOT_INSTALL_ERR_STR);
@@ -1583,7 +1583,7 @@ esp_err_t i2c_master_cmd_begin(i2c_port_t i2c_num, i2c_cmd_handle_t cmd_handle, 
     esp_err_t ret = ESP_FAIL;
     i2c_obj_t *p_i2c = &(p_i2c_obj[i2c_num]);
 
-    printf( "> Current instance ptr %p\r\n", p_i2c );
+    //printf( "> Current instance ptr %p\r\n", p_i2c );
 
     const TickType_t ticks_start = xTaskGetTickCount();
     BaseType_t res = xSemaphoreTake(p_i2c->cmd_mux, ticks_to_wait);
