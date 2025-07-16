@@ -48,7 +48,7 @@ uint64_t systimer_hal_get_counter_value(systimer_hal_context_t *hal, uint32_t co
     uint32_t lo, lo_start, hi;
     /* Set the "update" bit and wait for acknowledgment */
     systimer_ll_counter_snapshot(hal->dev, counter_id);
-    while (!systimer_ll_is_counter_value_valid(hal->dev, counter_id));
+    //while (!systimer_ll_is_counter_value_valid(hal->dev, counter_id));
     /* Read LO, HI, then LO again, check that LO returns the same value.
      * This accounts for the case when an interrupt may happen between reading
      * HI and LO values, and this function may get called from the ISR.
@@ -59,7 +59,7 @@ uint64_t systimer_hal_get_counter_value(systimer_hal_context_t *hal, uint32_t co
         lo = lo_start;
         hi = systimer_ll_get_counter_value_high(hal->dev, counter_id);
         lo_start = systimer_ll_get_counter_value_low(hal->dev, counter_id);
-    } while (lo_start != lo);
+    } while (/*false */ lo_start != lo);
 
     systimer_counter_value_t result = {
         .lo = lo,
