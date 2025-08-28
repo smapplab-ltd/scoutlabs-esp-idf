@@ -69,10 +69,24 @@ int64_t IRAM_ATTR esp_timer_impl_get_time(void)
 {
     // we hope the execution time of this function won't > 1us
     // thus, to save one function call, we didn't use the existing `systimer_hal_get_time`
-    return systimer_hal.ticks_to_us(systimer_hal_get_counter_value(&systimer_hal, SYSTIMER_COUNTER_ESPTIMER));
+    return systimer_hal.ticks_to_us( systimer_hal_get_counter_value(&systimer_hal, SYSTIMER_COUNTER_ESPTIMER) );
 }
 
 int64_t esp_timer_get_time(void) __attribute__((alias("esp_timer_impl_get_time")));
+
+uint64_t IRAM_ATTR esp_timer_get_systime( void ) {
+    return systimer_hal.ticks_to_us( systimer_hal_get_counter_value(&systimer_hal, SYSTIMER_COUNTER_OS_TICK) );
+}
+
+void     esp_timer_set_systime( uint64_t val ) {
+    systimer_ll_set_counter_value( (systimer_hal.dev), SYSTIMER_COUNTER_OS_TICK, val );
+    systimer_ll_apply_counter_value( (systimer_hal.dev), SYSTIMER_COUNTER_OS_TICK );
+}
+
+void     esp_timer_set_time( uint64_t val ) {
+    systimer_ll_set_counter_value( (systimer_hal.dev), SYSTIMER_COUNTER_ESPTIMER, val );
+    systimer_ll_apply_counter_value( (systimer_hal.dev), SYSTIMER_COUNTER_ESPTIMER );
+}
 
 void IRAM_ATTR esp_timer_impl_set_alarm_id(uint64_t timestamp, unsigned alarm_id)
 {

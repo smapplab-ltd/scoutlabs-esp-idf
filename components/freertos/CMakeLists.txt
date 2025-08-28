@@ -112,6 +112,7 @@ endif()
 
 # Add common public include directories
 list(APPEND include_dirs
+    "./"
     "config/include"                # For `#include "freertos/FreeRTOSConfig.h"`
     "config/include/freertos"       # For `#include "FreeRTOSConfig.h"`
     "config/${arch}/include")       # For `#include "freertos/FreeRTOSConfig_arch.h"`

@@ -40,13 +40,20 @@ void IRAM_ATTR esp_vApplicationTickHook(void)
 
 void esp_vApplicationIdleHook(void)
 {
+    return;
+
     bool can_go_idle = true;
+
     int core = xPortGetCoreID();
-    for (int n = 0; n < MAX_HOOKS; n++) {
-        if (idle_cb[core][n] != NULL && !idle_cb[core][n]()) {
+
+    int n = 0;
+
+    for ( n = 0; n < MAX_HOOKS; n++) {
+        if (idle_cb[core][n] != NULL && !idle_cb[core][n]() ) {
             can_go_idle = false;
         }
     }
+
     if (!can_go_idle) {
         return;
     }

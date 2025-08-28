@@ -21,6 +21,7 @@
 #include "esp_rom_spiflash.h"
 #include "esp_private/esp_clk.h"
 #include "esp_spi_flash_counters.h"
+#include "esp_flash.h"
 
 #if CONFIG_IDF_TARGET_ESP32S2
 #include "esp_crypto_lock.h" // for locking flash encryption peripheral

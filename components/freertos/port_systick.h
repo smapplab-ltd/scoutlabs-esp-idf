@@ -15,6 +15,13 @@ extern "C" {
  */
 void vPortSetupTimer(void);
 
+//void* get_systimer( void );
+uint64_t vPortGetSysTime( void );
+void     vPortSetSysTime( uint64_t time );
+
+uint64_t vPortGetEspTime( void );
+void     vPortSetEspTime( uint64_t time );
+
 #ifdef __cplusplus
 }
 #endif

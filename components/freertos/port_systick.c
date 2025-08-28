@@ -50,6 +50,9 @@ void SysTickIsrHandler(void *arg);
 
 static uint32_t s_handled_systicks[configNUM_CORES] = { 0 };
 
+/* Systimer HAL layer object */
+    static systimer_hal_context_t systimer_hal;
+
 /**
  * @brief Set up the systimer peripheral to generate the tick interrupt
  *
@@ -65,8 +68,7 @@ void vSystimerSetup(void)
 #else
     const unsigned level = ESP_INTR_FLAG_LEVEL1;
 #endif
-    /* Systimer HAL layer object */
-    static systimer_hal_context_t systimer_hal;
+
     /* set system timer interrupt vector */
 
     ESP_ERROR_CHECK(esp_intr_alloc(ETS_SYSTIMER_TARGET0_INTR_SOURCE + cpuid, ESP_INTR_FLAG_IRAM | level, SysTickIsrHandler, &systimer_hal, NULL));
@@ -117,12 +119,37 @@ void vSystimerSetup(void)
     }
 }
 
+
+void vPortSetSysTime( uint64_t time ) {
+    systimer_ll_set_counter_value(systimer_hal.dev, 1, time);
+    systimer_ll_apply_counter_value(systimer_hal.dev, 1);
+}
+
+uint64_t vPortGetSysTime( void ) {
+    return systimer_hal_get_time( &systimer_hal, 1 );
+}
+
+uint64_t vPortGetEspTime( void ) {
+    return systimer_hal_get_time( &systimer_hal, 0 );
+}
+
+void     vPortSetEspTime( uint64_t time ) {
+    systimer_ll_set_counter_value(systimer_hal.dev, 0, time);
+    systimer_ll_apply_counter_value(systimer_hal.dev, 0);
+}
+
 /**
  * @brief Systimer interrupt handler.
  *
  * The Systimer interrupt for SysTick works in periodic mode no need to calc the next alarm.
  * If a timer interrupt is ever serviced more than one tick late, it is necessary to process multiple ticks.
  */
+#define __diff(a,b) (a > b ? a - b : b - a)
+
+static uint32_t _period = 1000;
+uint64_t _systime = 0;
+uint64_t _esptime = 0;
+
 void SysTickIsrHandler(void *arg)
 {
     uint32_t cpuid = xPortGetCoreID();
@@ -138,6 +165,21 @@ void SysTickIsrHandler(void *arg)
 
     do {
         systimer_ll_clear_alarm_int(systimer_hal->dev, alarm_id);
+
+        if( --_period == 0 ) {
+            _period = 0;
+
+            _systime = vPortGetSysTime() / 1000;
+            _esptime = vPortGetEspTime() / 1000;
+
+            if( __diff(_systime, _esptime) > 5000 ) {
+                //ESP_EARLY_LOGI("SYSTICK", "SYSTICK TIMER DIFF");
+                //printf("--> SYSTICK TIMER DIFF\n");
+
+                //vPortSetSysTime(0);
+                //vPortSetEspTime(0);
+            }
+        }
 
         //uint32_t diff = systimer_hal_get_counter_value(systimer_hal, SYSTIMER_COUNTER_OS_TICK) / systimer_ll_get_alarm_period(systimer_hal->dev, alarm_id) - s_handled_systicks[cpuid];
         uint32_t diff = 1;
@@ -162,7 +204,12 @@ void SysTickIsrHandler(void *arg)
     ESP_PM_TRACE_EXIT(TICK, cpuid);
 #endif
 }
+
+
+
 #endif /* CONFIG_FREERTOS_SYSTICK_USES_SYSTIMER */
+
+
 
 /* ------------------------------------------------ Common Port Tick ---------------------------------------------------
  * Tick related functions common across all ports

@@ -221,7 +221,9 @@ esp_err_t esp_timer_delete(esp_timer_handle_t timer);
  * @return Number of microseconds since the initialization of ESP Timer
  */
 int64_t esp_timer_get_time(void);
-
+uint64_t esp_timer_get_systime( void );
+void     esp_timer_set_systime( uint64_t val );
+void     esp_timer_set_time( uint64_t val );
 /**
  * @brief Get the timestamp of the next expected timeout
  * @return Timestamp of the nearest timer event, in microseconds.

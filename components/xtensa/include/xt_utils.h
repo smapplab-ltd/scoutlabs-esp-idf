@@ -79,7 +79,7 @@ static inline void xt_utils_set_cycle_count(uint32_t ccount)
 
 FORCE_INLINE_ATTR void xt_utils_wait_for_intr(void)
 {
-    asm volatile ("waiti 0\n");
+    //asm volatile ("waiti 0\n");
 }
 
 /* ------------------------------------------------- CPU Interrupts ----------------------------------------------------
