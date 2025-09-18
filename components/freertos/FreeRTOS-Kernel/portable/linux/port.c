@@ -376,6 +376,8 @@ static void vPortSystemTickHandler( int sig )
     Thread_t *pxThreadToResume;
     /* uint64_t xExpectedTicks; */
 
+    f_vPortSystemTickHandler();
+
     uxCriticalNesting++; /* Signals are blocked in this signal handler. */
 
 #if ( configUSE_PREEMPTION == 1 )

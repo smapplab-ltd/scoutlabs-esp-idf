@@ -33,6 +33,14 @@
 #ifndef INC_FREERTOS_H
 #define INC_FREERTOS_H
 
+extern void f_vTaskSwitchContext(void);
+extern void f_vPortSystemTickHandler(void);
+extern void f_xTaskIncrementTick( void );
+extern void f_xTaskIncrementTick_break( void );
+extern void f_xTaskIncrementTick_call(void);
+extern void f_vPortTaskWrapper_begin( void );
+extern void f_vPortTaskWrapper_end( void );
+
 /*
  * Include the generic headers required for the FreeRTOS port being used.
  */

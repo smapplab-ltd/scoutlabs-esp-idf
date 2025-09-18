@@ -1941,7 +1941,7 @@ static void prvAddNewTaskToReadyList( TCB_t * pxNewTCB )
     void vTaskSuspend( TaskHandle_t xTaskToSuspend )
     {
         TCB_t * pxTCB;
-
+        // cust_f();
         taskENTER_CRITICAL( &xKernelLock );
         {
             /* Get current core ID as we can no longer be preempted. */
@@ -2005,6 +2005,7 @@ static void prvAddNewTaskToReadyList( TCB_t * pxNewTCB )
 
             if( taskIS_CURRENTLY_RUNNING_ON_CORE( pxTCB, xCurCoreID ) == pdTRUE )
             {
+
                 if( xSchedulerRunning != pdFALSE )
                 {
                     /* The current task has just been suspended. */
@@ -2374,6 +2375,7 @@ void vTaskStartScheduler( void )
 {
     BaseType_t xReturn;
 
+
     /* The code for prvCreateIdleTasks() has been backported from the upstream
      * FreeRTOS-Kernel source. The reference for the same is on the mainline
      * at the commit id# 2f94b181a2f049ec342deba0927bed51f7174ab0. */
@@ -2654,6 +2656,7 @@ BaseType_t xTaskResumeAll( void )
                     {
                         do
                         {
+                            f_xTaskIncrementTick_call();
                             if( xTaskIncrementTick() != pdFALSE )
                             {
                                 xYieldPending[ xCurCoreID ] = pdTRUE;
@@ -3254,6 +3257,9 @@ BaseType_t xTaskIncrementTick( void )
             {
                 for( ; ; )
                 {
+
+                    f_xTaskIncrementTick();
+
                     if( listLIST_IS_EMPTY( pxDelayedTaskList ) != pdFALSE )
                     {
                         /* The delayed list is empty.  Set xNextTaskUnblockTime
@@ -3262,6 +3268,7 @@ BaseType_t xTaskIncrementTick( void )
                          * if( xTickCount >= xNextTaskUnblockTime ) test will pass
                          * next time through. */
                         xNextTaskUnblockTime = portMAX_DELAY; /*lint !e961 MISRA exception as the casts are only redundant for some ports. */
+                        f_xTaskIncrementTick_break();
                         break;
                     }
                     else
@@ -3281,6 +3288,7 @@ BaseType_t xTaskIncrementTick( void )
                              * state -  so record the item value in
                              * xNextTaskUnblockTime. */
                             xNextTaskUnblockTime = xItemValue;
+                            f_xTaskIncrementTick_break();
                             break; /*lint !e9011 Code structure here is deemed easier to understand with multiple breaks. */
                         }
                         else
@@ -3647,9 +3655,12 @@ get_next_task:
 
 #endif /* configNUMBER_OF_CORES > 1 */
 /*-----------------------------------------------------------*/
+#include "stdio.h"
 
 void vTaskSwitchContext( void )
 {
+    f_vTaskSwitchContext();
+
     /* For SMP, we need to take the kernel lock here as we are about to access
     * kernel data structures (unlike single core which calls this function with
     * either interrupts disabled or when the scheduler hasn't started yet). */
@@ -4558,11 +4569,13 @@ static void prvCheckTasksWaitingTermination( void )
     #if ( INCLUDE_vTaskDelete == 1 )
     {
         TCB_t * pxTCB;
+        // cust_f();
 
         /* uxDeletedTasksWaitingCleanUp is used to prevent taskENTER_CRITICAL()
          * being called too often in the idle task. */
         while( uxDeletedTasksWaitingCleanUp > ( UBaseType_t ) 0U )
         {
+
             #if ( configNUMBER_OF_CORES > 1 )
             {
                 pxTCB = NULL;
