@@ -2656,7 +2656,6 @@ BaseType_t xTaskResumeAll( void )
                     {
                         do
                         {
-                            f_xTaskIncrementTick_call();
                             if( xTaskIncrementTick() != pdFALSE )
                             {
                                 xYieldPending[ xCurCoreID ] = pdTRUE;
@@ -3258,8 +3257,6 @@ BaseType_t xTaskIncrementTick( void )
                 for( ; ; )
                 {
 
-                    f_xTaskIncrementTick();
-
                     if( listLIST_IS_EMPTY( pxDelayedTaskList ) != pdFALSE )
                     {
                         /* The delayed list is empty.  Set xNextTaskUnblockTime
@@ -3268,7 +3265,6 @@ BaseType_t xTaskIncrementTick( void )
                          * if( xTickCount >= xNextTaskUnblockTime ) test will pass
                          * next time through. */
                         xNextTaskUnblockTime = portMAX_DELAY; /*lint !e961 MISRA exception as the casts are only redundant for some ports. */
-                        f_xTaskIncrementTick_break();
                         break;
                     }
                     else
@@ -3288,7 +3284,6 @@ BaseType_t xTaskIncrementTick( void )
                              * state -  so record the item value in
                              * xNextTaskUnblockTime. */
                             xNextTaskUnblockTime = xItemValue;
-                            f_xTaskIncrementTick_break();
                             break; /*lint !e9011 Code structure here is deemed easier to understand with multiple breaks. */
                         }
                         else
@@ -3659,7 +3654,6 @@ get_next_task:
 
 void vTaskSwitchContext( void )
 {
-    f_vTaskSwitchContext();
 
     /* For SMP, we need to take the kernel lock here as we are about to access
     * kernel data structures (unlike single core which calls this function with

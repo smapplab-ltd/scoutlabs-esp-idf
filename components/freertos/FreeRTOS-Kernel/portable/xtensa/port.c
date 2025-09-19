@@ -131,11 +131,9 @@ void _xt_user_exit(void);
 // Wrapper to allow task functions to return (increases stack overhead by 16 bytes)
 static void vPortTaskWrapper(TaskFunction_t pxCode, void *pvParameters)
 {
-    f_vPortTaskWrapper_begin();
     pxCode(pvParameters);
     //FreeRTOS tasks should not return. Log the task name and abort.
     char *pcTaskName = pcTaskGetName(NULL);
-    f_vPortTaskWrapper_end();
     ESP_LOGE("FreeRTOS", "FreeRTOS Task \"%s\" should not return, Aborting now!", pcTaskName);
     abort();
 }
