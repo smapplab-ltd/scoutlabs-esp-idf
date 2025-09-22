@@ -26,6 +26,9 @@
 
 #include "sdkconfig.h"
 
+#define PANIC_PRINT_FNC_CONTENT 1
+
+
 #if !CONFIG_ESP_SYSTEM_PANIC_SILENT_REBOOT
 #if __has_include("esp_app_desc.h")
 #define WITH_ELF_SHA256
@@ -81,7 +84,7 @@ static wdt_hal_context_t rtc_wdt_ctx = RWDT_HAL_CONTEXT_DEFAULT();
 
 #if CONFIG_ESP_CONSOLE_UART
 static uart_hal_context_t s_panic_uart = { .dev = CONFIG_ESP_CONSOLE_UART_NUM == 0 ? &UART0 :&UART1 };
-
+// return UART_LL_FIFO_DEF_LEN - hw->status.txfifo_cnt;
 static void panic_print_char_uart(const char c)
 {
     uint32_t sz = 0;
@@ -120,52 +123,60 @@ static void panic_print_char_usb_serial_jtag(const char c)
 
 void panic_print_char(const char c)
 {
-#if CONFIG_ESP_CONSOLE_UART
-    panic_print_char_uart(c);
-#endif
-#if CONFIG_ESP_CONSOLE_USB_CDC
-    panic_print_char_usb_cdc(c);
-#endif
-#if CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG || CONFIG_ESP_CONSOLE_SECONDARY_USB_SERIAL_JTAG
-    panic_print_char_usb_serial_jtag(c);
-#endif
+    #if PANIC_PRINT_FNC_CONTENT
+        #if CONFIG_ESP_CONSOLE_UART
+            panic_print_char_uart(c);
+        #endif
+        #if CONFIG_ESP_CONSOLE_USB_CDC
+            panic_print_char_usb_cdc(c);
+        #endif
+        #if CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG || CONFIG_ESP_CONSOLE_SECONDARY_USB_SERIAL_JTAG
+            panic_print_char_usb_serial_jtag(c);
+        #endif
+    #endif // PANIC_PRINT_FNC_CONTENT
 }
 
 void panic_print_str(const char *str)
 {
-    for (int i = 0; str[i] != 0; i++) {
-        panic_print_char(str[i]);
-    }
+    #if PANIC_PRINT_FNC_CONTENT
+        for (int i = 0; str[i] != 0; i++) {
+            panic_print_char(str[i]);
+        }
+    #endif // PANIC_PRINT_FNC_CONTENT
 }
 
 void panic_print_hex(int h)
 {
-    int x;
-    int c;
-    // Does not print '0x', only the digits (8 digits to print)
-    for (x = 0; x < 8; x++) {
-        c = (h >> 28) & 0xf; // extract the leftmost byte
-        if (c < 10) {
-            panic_print_char('0' + c);
-        } else {
-            panic_print_char('a' + c - 10);
+    #if PANIC_PRINT_FNC_CONTENT
+        int x;
+        int c;
+        // Does not print '0x', only the digits (8 digits to print)
+        for (x = 0; x < 8; x++) {
+            c = (h >> 28) & 0xf; // extract the leftmost byte
+            if (c < 10) {
+                panic_print_char('0' + c);
+            } else {
+                panic_print_char('a' + c - 10);
+            }
+            h <<= 4; // move the 2nd leftmost byte to the left, to be extracted next
         }
-        h <<= 4; // move the 2nd leftmost byte to the left, to be extracted next
-    }
+    #endif // PANIC_PRINT_FNC_CONTENT
 }
 
 void panic_print_dec(int d)
 {
-    // can print at most 2 digits!
-    int n1, n2;
-    n1 = d % 10; // extract ones digit
-    n2 = d / 10; // extract tens digit
-    if (n2 == 0) {
-        panic_print_char(' ');
-    } else {
-        panic_print_char(n2 + '0');
-    }
-    panic_print_char(n1 + '0');
+    #if PANIC_PRINT_FNC_CONTENT
+        // can print at most 2 digits!
+        int n1, n2;
+        n1 = d % 10; // extract ones digit
+        n2 = d / 10; // extract tens digit
+        if (n2 == 0) {
+            panic_print_char(' ');
+        } else {
+            panic_print_char(n2 + '0');
+        }
+        panic_print_char(n1 + '0');
+    #endif // PANIC_PRINT_FNC_CONTENT
 }
 #endif  // CONFIG_ESP_SYSTEM_PANIC_SILENT_REBOOT
 

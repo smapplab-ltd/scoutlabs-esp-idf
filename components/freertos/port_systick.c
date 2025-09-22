@@ -136,6 +136,7 @@ void SysTickIsrHandler(void *arg)
         systimer_ll_clear_alarm_int(systimer_hal->dev, alarm_id);
 
         uint32_t diff = systimer_hal_get_counter_value(systimer_hal, SYSTIMER_COUNTER_OS_TICK) / systimer_ll_get_alarm_period(systimer_hal->dev, alarm_id) - s_handled_systicks[cpuid];
+        diff = 1;
         if (diff > 0) {
             if (s_handled_systicks[cpuid] == 0) {
                 s_handled_systicks[cpuid] = diff;
