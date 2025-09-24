@@ -26,7 +26,7 @@
 
 #include "sdkconfig.h"
 
-#define PANIC_PRINT_FNC_CONTENT 1
+#define PANIC_PRINT_FNC_CONTENT 0
 
 
 #if !CONFIG_ESP_SYSTEM_PANIC_SILENT_REBOOT
