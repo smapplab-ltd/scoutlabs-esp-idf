@@ -37,6 +37,7 @@ void __attribute__((noreturn)) call_start_cpu0(void)
     if (bootloader_after_init) {
         bootloader_after_init();
     }
+    // bootloader_after_init();
 
 #ifdef CONFIG_BOOTLOADER_SKIP_VALIDATE_IN_DEEP_SLEEP
     // If this boot is a wake up from the deep sleep then go to the short way,
