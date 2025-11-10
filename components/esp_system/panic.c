@@ -71,6 +71,11 @@
 #include "riscv/semihosting.h"
 #endif
 
+#define WDT_RESET_ENABLE 1
+#define WDT_ACTION ( WDT_RESET_ENABLE ? WDT_STAGE_ACTION_RESET_SYSTEM : WDT_STAGE_ACTION_INT )
+
+extern void IRAM_ATTR tgxwdt_isr(void*);
+
 #define ESP_SEMIHOSTING_SYS_PANIC_REASON    0x116
 
 #define MWDT_DEFAULT_TICKS_PER_US       500
@@ -203,7 +208,7 @@ void esp_panic_handler_reconfigure_wdts(uint32_t timeout_ms)
     //Reconfigure TWDT (Timer Group 0)
     wdt_hal_init(&wdt0_context, WDT_MWDT0, MWDT_LL_DEFAULT_CLK_PRESCALER, false); //Prescaler: wdt counts in ticks of TG0_WDT_TICK_US
     wdt_hal_write_protect_disable(&wdt0_context);
-    wdt_hal_config_stage(&wdt0_context, 0, timeout_ms * 1000 / MWDT_DEFAULT_TICKS_PER_US, WDT_STAGE_ACTION_RESET_SYSTEM); //1 second before reset
+    wdt_hal_config_stage(&wdt0_context, 0, timeout_ms * 1000 / MWDT_DEFAULT_TICKS_PER_US, WDT_ACTION); //1 second before reset
     wdt_hal_enable(&wdt0_context);
     wdt_hal_write_protect_enable(&wdt0_context);
 
@@ -335,12 +340,17 @@ void esp_panic_handler(panic_info_t *info)
         return;
     }
 #endif //CONFIG_ESP_DEBUG_OCDAWARE
+
+    panic_print_str( "Reset GPIO...  " );
+    tgxwdt_isr( NULL );
+    panic_print_str( "done.\n" );
+
     // start panic WDT to restart system if we hang in this handler
     if (!wdt_hal_is_enabled(&rtc_wdt_ctx)) {
         wdt_hal_init(&rtc_wdt_ctx, WDT_RWDT, 0, false);
         uint32_t stage_timeout_ticks = (uint32_t)(7000ULL * rtc_clk_slow_freq_get_hz() / 1000ULL);
         wdt_hal_write_protect_disable(&rtc_wdt_ctx);
-        wdt_hal_config_stage(&rtc_wdt_ctx, WDT_STAGE0, stage_timeout_ticks, WDT_STAGE_ACTION_RESET_SYSTEM);
+        wdt_hal_config_stage(&rtc_wdt_ctx, WDT_STAGE0, stage_timeout_ticks, WDT_ACTION);
         // 64KB of core dump data (stacks of about 30 tasks) will produce ~85KB base64 data.
         // @ 115200 UART speed it will take more than 6 sec to print them out.
         wdt_hal_enable(&rtc_wdt_ctx);
@@ -407,7 +417,7 @@ void esp_panic_handler(panic_info_t *info)
     uint32_t stage_timeout_ticks = (uint32_t)(((CONFIG_ESP_SYSTEM_PANIC_REBOOT_DELAY_SECONDS + 1) * 1000
                                                * rtc_clk_slow_freq_get_hz()) / 1000ULL);
     wdt_hal_write_protect_disable(&rtc_wdt_ctx);
-    wdt_hal_config_stage(&rtc_wdt_ctx, WDT_STAGE0, stage_timeout_ticks, WDT_STAGE_ACTION_RESET_SYSTEM);
+    wdt_hal_config_stage(&rtc_wdt_ctx, WDT_STAGE0, stage_timeout_ticks, WDT_ACTION);
     // 64KB of core dump data (stacks of about 30 tasks) will produce ~85KB base64 data.
     // @ 115200 UART speed it will take more than 6 sec to print them out.
     wdt_hal_enable(&rtc_wdt_ctx);

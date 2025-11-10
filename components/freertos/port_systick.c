@@ -131,12 +131,17 @@ void SysTickIsrHandler(void *arg)
     ESP_PM_TRACE_ENTER(TICK, cpuid);
 #endif
 
+    //ESP_EARLY_LOGI("SYSTICK", "Tick int start\n");
+
     uint32_t alarm_id = SYSTIMER_ALARM_OS_TICK_CORE0 + cpuid;
+
+
     do {
         systimer_ll_clear_alarm_int(systimer_hal->dev, alarm_id);
 
-        uint32_t diff = systimer_hal_get_counter_value(systimer_hal, SYSTIMER_COUNTER_OS_TICK) / systimer_ll_get_alarm_period(systimer_hal->dev, alarm_id) - s_handled_systicks[cpuid];
-        diff = 1;
+        //uint32_t diff = systimer_hal_get_counter_value(systimer_hal, SYSTIMER_COUNTER_OS_TICK) / systimer_ll_get_alarm_period(systimer_hal->dev, alarm_id) - s_handled_systicks[cpuid];
+        uint32_t diff = 1;
+
         if (diff > 0) {
             if (s_handled_systicks[cpuid] == 0) {
                 s_handled_systicks[cpuid] = diff;
@@ -150,6 +155,8 @@ void SysTickIsrHandler(void *arg)
             } while (--diff);
         }
     } while (systimer_ll_is_alarm_int_fired(systimer_hal->dev, alarm_id));
+
+    //ESP_EARLY_LOGI("SYSTICK", "Tick int end\n");
 
 #ifdef CONFIG_PM_TRACE
     ESP_PM_TRACE_EXIT(TICK, cpuid);
