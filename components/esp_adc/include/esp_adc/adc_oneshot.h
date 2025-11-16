@@ -10,6 +10,7 @@
 #include <stdbool.h>
 #include "esp_err.h"
 #include "hal/adc_types.h"
+#include "hal/adc_oneshot_hal.h"
 #include "adc_cali.h"
 #include "adc_cali_scheme.h"
 
@@ -17,10 +18,19 @@
 extern "C" {
 #endif
 
+typedef struct adc_oneshot_unit_ctx_t {
+    adc_oneshot_hal_ctx_t hal;
+    uint32_t unit_id;
+    adc_ulp_mode_t ulp_mode;
+} adc_oneshot_unit_ctx_t;
+
+
 /**
  * @brief Type of ADC unit handle for oneshot mode
  */
-typedef struct adc_oneshot_unit_ctx_t *adc_oneshot_unit_handle_t;
+typedef struct adc_oneshot_unit_ctx_t* adc_oneshot_unit_handle_t;
+
+
 
 /**
  * @brief ADC oneshot driver initial configurations
@@ -39,6 +49,8 @@ typedef struct {
     adc_bitwidth_t bitwidth;        ///< ADC conversion result bits
 } adc_oneshot_chan_cfg_t;
 
+
+
 /**
  * @brief Create a handle to a specific ADC unit
  *
@@ -55,6 +67,8 @@ typedef struct {
  *        - ESP_FAIL:            Clock source isn't initialised correctly
  */
 esp_err_t adc_oneshot_new_unit(const adc_oneshot_unit_init_cfg_t *init_config, adc_oneshot_unit_handle_t *ret_unit);
+
+esp_err_t adc_oneshot_new_unit_static( const adc_oneshot_unit_init_cfg_t *init_config, adc_oneshot_unit_handle_t *ret_unit );
 
 /**
  * @brief Set ADC oneshot mode required configurations
@@ -101,7 +115,7 @@ esp_err_t adc_oneshot_read(adc_oneshot_unit_handle_t handle, adc_channel_t chan,
  *        - ESP_ERR_NOT_FOUND:   The ADC peripheral to be disclaimed isn't in use
  */
 esp_err_t adc_oneshot_del_unit(adc_oneshot_unit_handle_t handle);
-
+esp_err_t adc_oneshot_del_unit_static(adc_oneshot_unit_handle_t handle);
 /**
  * @brief Get ADC channel from the given GPIO number
  *
