@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2015-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2015-2024 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -11,7 +11,6 @@
 #include "hal/wdt_hal.h"
 #include "hal/mwdt_ll.h"
 #include "hal/timer_ll.h"
-#include "soc/system_intr.h"
 #include "esp_check.h"
 #include "esp_err.h"
 #include "esp_attr.h"
@@ -21,7 +20,7 @@
 #include "esp_private/periph_ctrl.h"
 #include "esp_private/esp_task_wdt_impl.h"
 
-#if CONFIG_PM_POWER_DOWN_PERIPHERAL_IN_LIGHT_SLEEP && SOC_MWDT_SUPPORT_SLEEP_RETENTION
+#if CONFIG_PM_POWER_DOWN_PERIPHERAL_IN_LIGHT_SLEEP && SOC_TIMER_SUPPORT_SLEEP_RETENTION
 #include "esp_private/sleep_retention.h"
 #endif
 
@@ -30,13 +29,11 @@
 #define TWDT_PRESCALER          MWDT_LL_DEFAULT_CLK_PRESCALER   // Tick period of 500us if WDT source clock is 80MHz
 #define TWDT_PERIPH_MODULE      PERIPH_TIMG0_MODULE
 #define TWDT_TIMER_GROUP        0
-#define TWDT_INTR_SOURCE        SYS_TG0_WDT_INTR_SOURCE
+#define TWDT_INTR_SOURCE        ETS_TG0_WDT_LEVEL_INTR_SOURCE
 
-#if CONFIG_PM_SLP_IRAM_OPT
-# define TASK_WDT_FN_ATTR   IRAM_ATTR
-#else
-# define TASK_WDT_FN_ATTR
-#endif
+#define WDT_RESET_ENABLE 1
+#define WDT_ACTION ( WDT_RESET_ENABLE ? WDT_STAGE_ACTION_RESET_SYSTEM : WDT_STAGE_ACTION_INT )
+
 
 /**
  * Context for the software implementation of the Task WatchDog Timer.
@@ -52,7 +49,7 @@ typedef struct {
  * init function. */
 static twdt_ctx_hard_t init_context;
 
-#if CONFIG_PM_POWER_DOWN_PERIPHERAL_IN_LIGHT_SLEEP && SOC_MWDT_SUPPORT_SLEEP_RETENTION
+#if CONFIG_PM_POWER_DOWN_PERIPHERAL_IN_LIGHT_SLEEP && SOC_TIMER_SUPPORT_SLEEP_RETENTION
 static const char* TAG = "task_wdt";
 static esp_err_t sleep_task_wdt_retention_init(void *arg)
 {
@@ -72,7 +69,7 @@ static esp_err_t esp_task_wdt_retention_enable(uint32_t group_id)
 {
     sleep_retention_module_init_param_t init_param = {
         .cbs = { .create = { .handle = sleep_task_wdt_retention_init, .arg = &group_id } },
-        .depends = RETENTION_MODULE_BITMAP_INIT(CLOCK_SYSTEM)
+        .depends = BIT(SLEEP_RETENTION_MODULE_CLOCK_SYSTEM)
     };
     esp_err_t err = sleep_retention_module_init((group_id == 0) ? SLEEP_RETENTION_MODULE_TG0_WDT : SLEEP_RETENTION_MODULE_TG1_WDT, &init_param);
     if (err == ESP_OK) {
@@ -121,16 +118,18 @@ esp_err_t esp_task_wdt_impl_timer_allocate(const esp_task_wdt_config_t *config,
 
         wdt_hal_write_protect_disable(&ctx->hal);
         // Configure 1st stage timeout and behavior
-        wdt_hal_config_stage(&ctx->hal, WDT_STAGE0, config->timeout_ms * (1000 / TWDT_TICKS_PER_US), WDT_STAGE_ACTION_INT);
+        wdt_hal_config_stage(&ctx->hal, WDT_STAGE0, config->timeout_ms * (1000 / TWDT_TICKS_PER_US), WDT_ACTION);
         // Configure 2nd stage timeout and behavior
-        wdt_hal_config_stage(&ctx->hal, WDT_STAGE1, config->timeout_ms * (2 * 1000 / TWDT_TICKS_PER_US), WDT_STAGE_ACTION_RESET_SYSTEM);
+        wdt_hal_config_stage(&ctx->hal, WDT_STAGE1, config->timeout_ms * (2 * 1000 / TWDT_TICKS_PER_US), WDT_ACTION);
+
+
         // No need to enable to enable the WDT here, it will be enabled with `esp_task_wdt_impl_timer_restart`
         wdt_hal_write_protect_enable(&ctx->hal);
 
         /* Return the implementation context to the caller */
         *obj = (twdt_ctx_t) ctx;
 
-#if CONFIG_PM_POWER_DOWN_PERIPHERAL_IN_LIGHT_SLEEP && SOC_MWDT_SUPPORT_SLEEP_RETENTION
+#if CONFIG_PM_POWER_DOWN_PERIPHERAL_IN_LIGHT_SLEEP && SOC_TIMER_SUPPORT_SLEEP_RETENTION
         esp_task_wdt_retention_enable(TWDT_TIMER_GROUP);
 #endif
     }
@@ -150,8 +149,8 @@ esp_err_t esp_task_wdt_impl_timer_reconfigure(twdt_ctx_t obj, const esp_task_wdt
     if (ret == ESP_OK) {
         wdt_hal_write_protect_disable(&ctx->hal);
         /* Reconfigure the 1st and 2nd stage timeout */
-        wdt_hal_config_stage(&ctx->hal, WDT_STAGE0, config->timeout_ms * (1000 / TWDT_TICKS_PER_US), WDT_STAGE_ACTION_INT);
-        wdt_hal_config_stage(&ctx->hal, WDT_STAGE1, config->timeout_ms * (2 * 1000 / TWDT_TICKS_PER_US), WDT_STAGE_ACTION_RESET_SYSTEM);
+        wdt_hal_config_stage(&ctx->hal, WDT_STAGE0, config->timeout_ms * (1000 / TWDT_TICKS_PER_US), WDT_ACTION);
+        wdt_hal_config_stage(&ctx->hal, WDT_STAGE1, config->timeout_ms * (2 * 1000 / TWDT_TICKS_PER_US), WDT_ACTION);
         wdt_hal_write_protect_enable(&ctx->hal);
     }
 
@@ -177,13 +176,13 @@ void esp_task_wdt_impl_timer_free(twdt_ctx_t obj)
         /* Deregister interrupt */
         ESP_ERROR_CHECK(esp_intr_free(ctx->intr_handle));
 
-#if CONFIG_PM_POWER_DOWN_PERIPHERAL_IN_LIGHT_SLEEP && SOC_MWDT_SUPPORT_SLEEP_RETENTION
+#if CONFIG_PM_POWER_DOWN_PERIPHERAL_IN_LIGHT_SLEEP && SOC_TIMER_SUPPORT_SLEEP_RETENTION
         ESP_ERROR_CHECK(esp_task_wdt_retention_disable(TWDT_TIMER_GROUP));
 #endif
     }
 }
 
-esp_err_t TASK_WDT_FN_ATTR esp_task_wdt_impl_timer_feed(twdt_ctx_t obj)
+esp_err_t esp_task_wdt_impl_timer_feed(twdt_ctx_t obj)
 {
     esp_err_t ret = ESP_OK;
     twdt_ctx_hard_t* ctx = (twdt_ctx_hard_t*) obj;

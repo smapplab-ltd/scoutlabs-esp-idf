@@ -74,6 +74,10 @@ int64_t ESP_TIMER_IRAM_ATTR esp_timer_impl_get_time(void)
 
 int64_t esp_timer_get_time(void) __attribute__((alias("esp_timer_impl_get_time")));
 
+uint64_t IRAM_ATTR esp_timer_get_systime( void ) {
+    return systimer_hal.ticks_to_us( systimer_hal_get_counter_value(&systimer_hal, SYSTIMER_COUNTER_OS_TICK) );
+}
+
 void ESP_TIMER_IRAM_ATTR esp_timer_impl_set_alarm_id(uint64_t timestamp, unsigned alarm_id)
 {
     assert(alarm_id < sizeof(timestamp_id) / sizeof(timestamp_id[0]));
