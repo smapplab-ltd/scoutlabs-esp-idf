@@ -78,6 +78,9 @@ uint64_t IRAM_ATTR esp_timer_get_systime( void ) {
     return systimer_hal.ticks_to_us( systimer_hal_get_counter_value(&systimer_hal, SYSTIMER_COUNTER_OS_TICK) );
 }
 
+void esp_timer_set_time( uint64_t _new_us )    __attribute__((alias("esp_timer_impl_set")));
+void esp_timer_set_systime( uint64_t _new_us ) __attribute__((alias("esp_timer_impl_set_systime")));
+
 void ESP_TIMER_IRAM_ATTR esp_timer_impl_set_alarm_id(uint64_t timestamp, unsigned alarm_id)
 {
     assert(alarm_id < sizeof(timestamp_id) / sizeof(timestamp_id[0]));
@@ -142,6 +145,16 @@ void esp_timer_impl_set(uint64_t new_us)
     systimer_ll_set_counter_value(systimer_hal.dev, SYSTIMER_COUNTER_ESPTIMER, new_count.val);
     systimer_ll_apply_counter_value(systimer_hal.dev, SYSTIMER_COUNTER_ESPTIMER);
     portEXIT_CRITICAL_SAFE(&s_time_update_lock);
+}
+
+void esp_timer_impl_set_systime( uint64_t new_us ) {
+    portENTER_CRITICAL_SAFE( &s_time_update_lock );
+    systimer_counter_value_t new_count = {
+        .val = systimer_hal.us_to_ticks( new_us ),
+    };
+    systimer_ll_set_counter_value( systimer_hal.dev, SYSTIMER_COUNTER_OS_TICK, new_count.val );
+    systimer_ll_apply_counter_value( systimer_hal.dev, SYSTIMER_COUNTER_OS_TICK );
+    portEXIT_CRITICAL_SAFE( &s_time_update_lock );
 }
 
 void esp_timer_impl_advance(int64_t time_diff_us)
