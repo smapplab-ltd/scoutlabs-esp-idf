@@ -471,7 +471,7 @@ menu "FreeRTOS"
 
         config FREERTOS_TICK_SUPPORT_CORETIMER
             bool
-            default y if IDF_TARGET_ESP32 || IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
+            default y if IDF_TARGET_ESP32 || IDF_TARGET_ESP32S2
 
         config FREERTOS_TICK_SUPPORT_SYSTIMER
             bool
