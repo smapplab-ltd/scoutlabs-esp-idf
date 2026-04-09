@@ -204,7 +204,7 @@ void IRAM_ATTR spi_flash_set_rom_required_regs(void)
 #endif
 }
 
-#if CONFIG_SPIRAM_MODE_OCT
+//#if CONFIG_SPIRAM_MODE_OCT
 // This function will only be called when Octal PSRAM enabled.
 void IRAM_ATTR spi_flash_set_vendor_required_regs(void)
 {
@@ -217,7 +217,7 @@ void IRAM_ATTR spi_flash_set_vendor_required_regs(void)
         SET_PERI_REG_BITS(SPI_MEM_CACHE_FCTRL_REG(1), SPI_MEM_CACHE_USR_CMD_4BYTE_V, 0, SPI_MEM_CACHE_USR_CMD_4BYTE_S);
     }
 }
-#endif
+//#endif
 
 static const uint8_t s_mspi_io_num_default[] = {
     MSPI_IOMUX_PIN_NUM_CLK,
