@@ -158,6 +158,9 @@ void esp_vApplicationIdleHook(void)
 void esp_vApplicationTickHook( void ) { }
 
 #if  (  configUSE_TICK_HOOK > 0 )
+
+extern void vApplicationTickHook( void );
+
 void vApplicationTickHook( void )
 {
     esp_vApplicationTickHook();

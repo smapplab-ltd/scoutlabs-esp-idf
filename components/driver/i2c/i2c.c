@@ -1573,7 +1573,7 @@ esp_err_t i2c_master_cmd_begin(i2c_port_t i2c_num, i2c_cmd_handle_t cmd_handle, 
 #if CONFIG_SPIRAM_USE_MALLOC
     //If the i2c read or write buffer is not in internal RAM, we will return ESP_FAIL
     //to avoid the ISR handler function crashing when the cache is disabled.
-    if ((p_i2c_obj[i2c_num]->intr_alloc_flags & ESP_INTR_FLAG_IRAM) &&
+    if ((p_i2c_obj[i2c_num].intr_alloc_flags & ESP_INTR_FLAG_IRAM) &&
             !is_cmd_link_buffer_internal(((const i2c_cmd_desc_t *)cmd_handle)->head)) {
         ESP_LOGE(I2C_TAG, I2C_PSRAM_BUFFER_WARN_STR);
         return ESP_ERR_INVALID_ARG;
