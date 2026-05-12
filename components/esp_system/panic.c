@@ -395,7 +395,8 @@ void esp_panic_handler(panic_info_t *info)
 #endif //CONFIG_ESP_DEBUG_OCDAWARE
 
     panic_print_str( "Reset GPIO...  " );
-    tgxwdt_isr( NULL );
+    // UNCOMMENT THIS:
+     tgxwdt_isr( NULL );
     panic_print_str( "done.\n" );
 
     /* Feed the WDTs here. This is done to fascilitate a "slow" UART

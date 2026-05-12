@@ -221,6 +221,7 @@ void esp_int_wdt_cpu_init(void)
             assert(r == ESP_OK);
     ESP_LOGI("INTWDT", ">> INT WDT interrupt handler installed on CPU\n", esp_cpu_get_core_id() );
     */
+   // UNCOMMENT THIS:
     tgxwdt_isr(NULL); // Call the ISR once to clear any pending interrupts
 
 #if SOC_CPU_HAS_FLEXIBLE_INTC

@@ -48,6 +48,7 @@ void adc_oneshot_hal_channel_config(adc_oneshot_hal_ctx_t *hal, const adc_onesho
 void adc_oneshot_hal_setup(adc_oneshot_hal_ctx_t *hal, adc_channel_t chan)
 {
     adc_unit_t unit = hal->unit;
+    //printf("ADC Unit: %d, Channel: %d, Attenuation: %d, Bitwidth: %d\n", unit, chan, hal->chan_configs[chan].atten, hal->chan_configs[chan].bitwidth);
 
 #ifdef CONFIG_IDF_TARGET_ESP32
     adc_ll_hall_disable(); //Disable other peripherals.
